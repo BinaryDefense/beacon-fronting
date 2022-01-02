@@ -71,7 +71,7 @@ func main() {
 		// Set the HTTP host header to the backend domain
 		req.Host = *backendDomainPtr
 	} else {
-
+		client = &http.Client{}
 		url := proto + *backendDomainPtr + *requestPtr
 		req, err = http.NewRequest("GET", url, nil)
 		if err != nil {
@@ -95,7 +95,10 @@ func main() {
 		}
 
 		// Add Jitter to polling interval and sleep that long
-		thisJitter := rand.Intn(int(math.Ceil((float64)(*pollingPtr) * ((float64)(*jitterPtr) / 100.0))))
+		thisJitter := 0
+		if *jitterPtr > 0 {
+			thisJitter = rand.Intn(int(math.Ceil((float64)(*pollingPtr) * ((float64)(*jitterPtr) / 100.0))))
+		}
 		thisSleepTime := time.Duration((*pollingPtr + thisJitter)) * time.Second
 		now = time.Now()
 		fmt.Printf("%s: Sleeping for %d seconds\n", now, (thisSleepTime / time.Second))
