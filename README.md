@@ -2,6 +2,7 @@
 A simple command line program to help defender test their detections for network beacon patterns and domain fronting
 
 # Command-line arguments
+```
 Usage of ./BeaconFrontTest:
   -backdomain string
         the origin or backend domain (your real server hostname) (default "vs-update-server.azureedge.net")
@@ -19,7 +20,7 @@ Usage of ./BeaconFrontTest:
         include -usefronting if you want to use domain fronting, omit if not
   -usehttps
         include -usehttps if you want to use TLS/HTTPS, or omit for unencrypted HTTP
-
+```
 # Example usage:
 ## Simple 60 second polling, no jitter, no domain fronting, use https
 ./BeaconFrontTest -backdomain httpstat.us -request /200 -usehttps -poll 60 -jitter 0
