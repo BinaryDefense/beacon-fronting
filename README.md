@@ -28,4 +28,38 @@ Usage of ./BeaconFrontTest:
 ## 30 second polling with 50% jitter, using domain fronting through azureedge CDN
 ./BeaconFrontTest -backdomain your-cdn-hostname.azureedge.net -frontdomain natick.research.microsoft.com -usefronting -usehttps -poll 30 -jitter 50 -request /test-page.html?using-query-string=for-no-caching
 
+# Detection Queries
+## KQL Query to Detect TLS Domain Fronting for Suricata and Sysmon Events
+```
+// TLS Domain Fronting Query
+Suricata
+| where event_type == "dns" and type == "answer" // Look for DNS answers
+| mv-expand answers // Split multiple answers into individual rows
+| where answers.rrtype in ("A", "AAAA") // Take just the domain to IPv4 or IPv6 answers
+| extend rrtype = tostring(answers.rrtype), rdata = tostring(answers.rdata)
+| project TimeGenerated, rrname, rrtype, rdata // Output simple passive DNS records: (date,query,type,answer)
+// Now take the passive DNS output and join it to TLS connection events
+| join kind=inner (Suricata | where event_type=="tls" | project TLSTimeGenerated=TimeGenerated, dst_ip, tls_sni) on $left.rdata == $right.dst_ip
+| where rrname != tls_sni // Only examine the records where DNS name is different from SNI name
+| where abs(datetime_diff("second", TimeGenerated, TLSTimeGenerated)) < 10 // Only look at DNS and TLS close to the same time
+// Join the Suricata network event data with Sysmon process data to link processes with network traffic
+| join kind=inner (Sysmon | where EventID==3 | project ProcessPath, DestinationIp, DestinationPort) on $left.dst_ip == $right.DestinationIp
+//| where ProcessPath !endswith @"AppData\Local\Microsoft\Teams\current\Teams.exe"
+| summarize make_set(tls_sni, 50), make_set(dst_ip, 50), make_set(ProcessPath, 50) by rrname
+```
 
+## KQL Query to Detect HTTP (Non-Encrypted) Domain Fronting for Suricata (or if you inspect TLS traffic)
+```
+// Unencrypted HTTP Domain Fronting Query
+Suricata
+| where event_type == "dns" and type == "answer"
+| mv-expand answers
+| where answers.rrtype in ("A", "AAAA")
+| extend rrtype = tostring(answers.rrtype), rdata = tostring(answers.rdata)
+| project TimeGenerated, rrname, rrtype, rdata
+| join kind=inner (Suricata | where event_type=="http" | project HTTPTimeGenerated=TimeGenerated, dst_ip, http_hostname) on $left.rdata == $right.dst_ip
+| where rrname != http_hostname
+| where abs(datetime_diff("second", TimeGenerated, HTTPTimeGenerated)) < 60
+| join kind=inner (Sysmon | where EventID==3 | project ProcessPath, DestinationIp, DestinationPort) on $left.dst_ip == $right.DestinationIp
+| summarize make_set(http_hostname,50), make_set(dst_ip,50), make_set(ProcessPath,50) by rrname
+```
