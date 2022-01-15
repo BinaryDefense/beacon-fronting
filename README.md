@@ -3,7 +3,7 @@ A simple command line program to help defender test their detections for network
 
 # Command-line arguments
 ```
-Usage of ./BeaconFrontTest:
+Usage of beacon-fronting.exe:
   -backdomain string
         the origin or backend domain (your real server hostname) (default "vs-update-server.azureedge.net")
   -frontdomain string
