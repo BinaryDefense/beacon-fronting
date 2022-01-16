@@ -6,8 +6,12 @@ A simple command line program to help defender test their detections for network
 Usage of beacon-fronting.exe:
   -backdomain string
         the origin or backend domain (your real server hostname) (default "vs-update-server.azureedge.net")
+  -blanksni
+        include -blanksni to use a blank string as the TLS SNI field
   -frontdomain string
         the domain you want to front (default "natick.research.microsoft.com")
+  -frontsni
+        include -frontsni to use the fronted domain as the TLS SNI field
   -jitter int
         percent (0-99) of variation to randomize poll interval (default 10)
   -poll int
