@@ -46,10 +46,23 @@ Suricata
 | join kind=inner (Suricata | where event_type=="tls" | project TLSTimeGenerated=TimeGenerated, dst_ip, tls_sni) on $left.rdata == $right.dst_ip
 | where rrname != tls_sni // Only examine the records where DNS name is different from SNI name
 | where abs(datetime_diff("second", TimeGenerated, TLSTimeGenerated)) < 10 // Only look at DNS and TLS close to the same time
+// Optional - remove any results where the DNS name queried was the CNAME answer for the TLS SNI field
+//| join kind=leftanti CNAMEs on $left.tls_sni == $right.rrname and $left.rrname == $right.rdata
 // Join the Suricata network event data with Sysmon process data to link processes with network traffic
 | join kind=inner (Sysmon | where EventID==3 | project ProcessPath, DestinationIp, DestinationPort) on $left.dst_ip == $right.DestinationIp
 //| where ProcessPath !endswith @"AppData\Local\Microsoft\Teams\current\Teams.exe"
 | summarize make_set(tls_sni, 50), make_set(dst_ip, 50), make_set(ProcessPath, 50) by rrname
+```
+
+### CNAMEs Custom Function
+```
+// CNAMEs custom function (save as function in Sentinel)
+Suricata
+| where event_type == "dns" and type == "answer" // Look for DNS answers
+| mv-expand answers // Split multiple answers into individual rows
+| where answers.rrtype == "CNAME" // Take just the CNAME answers
+| extend rrtype = tostring(answers.rrtype), rdata = tostring(answers.rdata)
+| distinct rrname, rrtype, rdata // Output simple passive DNS records: (query,type,answer)
 ```
 
 ## KQL Query to Detect HTTP (Non-Encrypted) Domain Fronting for Suricata (or if you inspect TLS traffic)
