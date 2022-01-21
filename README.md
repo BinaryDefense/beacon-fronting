@@ -1,5 +1,5 @@
 # beacon-fronting
-A simple command line program to help defender test their detections for network beacon patterns and domain fronting
+A simple command line program to help network defenders test their detections for network beacon patterns and domain fronting
 
 # Command-line arguments
 ```
