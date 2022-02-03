@@ -67,6 +67,7 @@ func main() {
 		}
 		client = &http.Client{
 			Transport: &http.Transport{
+			        Proxy: http.ProxyFromEnvironment,
 				TLSClientConfig: &tls.Config{
 					ServerName: servername, // Set the backend domain as the SNI value
 				},
@@ -80,7 +81,11 @@ func main() {
 		// Set the HTTP host header to the backend domain
 		req.Host = *backendDomainPtr
 	} else {
-		client = &http.Client{}
+		client = &http.Client{
+			Transport: &http.Transport{
+			        Proxy: http.ProxyFromEnvironment,
+			},
+		}
 		url := proto + *backendDomainPtr + *requestPtr
 		req, err = http.NewRequest("GET", url, nil)
 		if err != nil {
